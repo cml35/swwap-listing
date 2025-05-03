@@ -5,19 +5,56 @@ const prisma = new PrismaClient();
 
 interface AuthRequest extends Request {
   user?: {
-    id: string;
-    email: string;
+    userId: string;
+    iat: number;
+    exp: number;
+  };
+  body: {
+    title?: string;
+    description?: string;
+    condition?: string;
+    images?: string[];
+    tags?: string[];
+  };
+  params: {
+    id?: string;
   };
 }
 
 export const createListing = async (req: AuthRequest, res: Response) => {
   try {
-    const { title, description, condition, images, tags } = req.body;
-    const userId = req.user?.id;
+    console.log('=== CREATE LISTING REQUEST ===');
+    console.log('Raw request body:', JSON.stringify(req.body, null, 2));
+    console.log('Raw tags type:', typeof req.body.tags);
+    console.log('Raw tags value:', req.body.tags);
+
+    const { title, description, condition } = req.body;
+    
+    if (!title || !description || !condition) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const images = Array.isArray(req.body.images) ? req.body.images : [];
+    const tags = Array.isArray(req.body.tags) ? req.body.tags : [];
+
+    console.log('Processed tags:', tags);
+    console.log('Processed tags type:', typeof tags);
+    console.log('Is tags array?', Array.isArray(tags));
+
+    const userId = req.user?.userId;
 
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
+
+    console.log('Data being sent to Prisma:', {
+      title,
+      description,
+      condition,
+      images,
+      tags,
+      userId
+    });
 
     const listing = await prisma.listing.create({
       data: {
@@ -30,17 +67,40 @@ export const createListing = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    console.log('Prisma response:', JSON.stringify(listing, null, 2));
+    console.log('Response tags type:', typeof listing.tags);
+    console.log('Response tags value:', listing.tags);
+    console.log('=== END CREATE LISTING ===\n');
+
     res.status(201).json(listing);
   } catch (error) {
+    console.error('Error creating listing:', error);
     res.status(400).json({ error: 'Error creating listing' });
   }
 };
 
 export const updateListing = async (req: AuthRequest, res: Response) => {
   try {
+    console.log('=== UPDATE LISTING REQUEST ===');
+    console.log('Raw request body:', JSON.stringify(req.body, null, 2));
+    console.log('Raw tags type:', typeof req.body.tags);
+    console.log('Raw tags value:', req.body.tags);
+
     const { id } = req.params;
-    const { title, description, condition, images, tags } = req.body;
-    const userId = req.user?.id;
+    const { title, description, condition } = req.body;
+    
+    if (!id || !title || !description || !condition) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const images = Array.isArray(req.body.images) ? req.body.images : [];
+    const tags = Array.isArray(req.body.tags) ? req.body.tags : [];
+
+    console.log('Processed tags:', tags);
+    console.log('Processed tags type:', typeof tags);
+    console.log('Is tags array?', Array.isArray(tags));
+
+    const userId = req.user?.userId;
 
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
@@ -59,6 +119,15 @@ export const updateListing = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: 'Not authorized to update this listing' });
     }
 
+    console.log('Data being sent to Prisma:', {
+      id,
+      title,
+      description,
+      condition,
+      images,
+      tags
+    });
+
     const updatedListing = await prisma.listing.update({
       where: { id },
       data: {
@@ -70,8 +139,14 @@ export const updateListing = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    console.log('Prisma response:', JSON.stringify(updatedListing, null, 2));
+    console.log('Response tags type:', typeof updatedListing.tags);
+    console.log('Response tags value:', updatedListing.tags);
+    console.log('=== END UPDATE LISTING ===\n');
+
     res.json(updatedListing);
   } catch (error) {
+    console.error('Error updating listing:', error);
     res.status(400).json({ error: 'Error updating listing' });
   }
 };
@@ -79,7 +154,7 @@ export const updateListing = async (req: AuthRequest, res: Response) => {
 export const deleteListing = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
 
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
@@ -104,6 +179,7 @@ export const deleteListing = async (req: AuthRequest, res: Response) => {
 
     res.status(204).send();
   } catch (error) {
+    console.error('Error deleting listing:', error);
     res.status(400).json({ error: 'Error deleting listing' });
   }
 }; 
