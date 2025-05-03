@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { createListing, updateListing, deleteListing } from '../controllers/listingController';
+import { createListing, updateListing, deleteListing, getListings } from '../controllers/listingController';
 import { auth } from '../middleware/auth';
 
 const router = Router();
@@ -31,6 +31,7 @@ const listingValidation = [
 ];
 
 // Routes
+router.get('/', auth, getListings);
 router.post('/', auth, listingValidation, createListing);
 router.put('/:id', auth, listingValidation, updateListing);
 router.delete('/:id', auth, deleteListing);

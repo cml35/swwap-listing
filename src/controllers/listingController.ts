@@ -182,4 +182,32 @@ export const deleteListing = async (req: AuthRequest, res: Response) => {
     console.error('Error deleting listing:', error);
     res.status(400).json({ error: 'Error deleting listing' });
   }
+};
+
+export const getListings = async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('=== GET LISTINGS REQUEST ===');
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const listings = await prisma.listing.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    console.log('Found listings:', listings.length);
+    console.log('=== END GET LISTINGS ===\n');
+
+    res.json(listings);
+  } catch (error) {
+    console.error('Error fetching listings:', error);
+    res.status(500).json({ error: 'Error fetching listings' });
+  }
 }; 
