@@ -210,4 +210,88 @@ export const getListings = async (req: AuthRequest, res: Response) => {
     console.error('Error fetching listings:', error);
     res.status(500).json({ error: 'Error fetching listings' });
   }
+};
+
+export const removeListing = async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('Backend - Starting removeListing');
+    console.log('Backend - Request params:', req.params);
+    console.log('Backend - User from request:', req.user);
+
+    const { id } = req.params;
+    const userId = req.user?.userId;
+
+    console.log('Backend - Listing ID:', id);
+    console.log('Backend - User ID:', userId);
+
+    if (!userId) {
+      console.log('Backend - No user ID found in request');
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // Find the listing and check ownership
+    console.log('Backend - Finding listing in database');
+    const listing = await prisma.listing.findUnique({
+      where: { id },
+    });
+
+    console.log('Backend - Found listing:', listing);
+
+    if (!listing) {
+      console.log('Backend - Listing not found');
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    if (listing.userId !== userId) {
+      console.log('Backend - User not authorized. Listing userId:', listing.userId, 'Request userId:', userId);
+      return res.status(403).json({ message: 'Not authorized to remove this listing' });
+    }
+
+    // Delete the listing
+    console.log('Backend - Deleting listing');
+    await prisma.listing.delete({
+      where: { id },
+    });
+
+    console.log('Backend - Successfully deleted listing');
+    res.status(200).json({ message: 'Listing removed successfully' });
+  } catch (error) {
+    console.error('Backend - Error in removeListing:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    res.status(500).json({ message: 'Error removing listing' });
+  }
+};
+
+export const getListing = async (req: AuthRequest, res: Response) => {
+  try {
+    console.log('=== GET LISTING REQUEST ===');
+    const { id } = req.params;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      console.log('No user ID found in request');
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    console.log('Fetching listing with ID:', id);
+    const listing = await prisma.listing.findUnique({
+      where: { id },
+    });
+
+    if (!listing) {
+      console.log('Listing not found');
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    console.log('Found listing:', listing);
+    console.log('=== END GET LISTING ===\n');
+
+    res.json(listing);
+  } catch (error) {
+    console.error('Error fetching listing:', error);
+    res.status(500).json({ error: 'Error fetching listing' });
+  }
 }; 

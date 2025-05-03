@@ -11,42 +11,38 @@ interface AuthRequest extends Request {
 
 export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    console.log('Auth middleware - Headers:', req.headers);
-    const authHeader = req.header('Authorization');
-    console.log('Auth middleware - Authorization header:', authHeader);
-    
-    const token = authHeader?.replace('Bearer ', '');
-    console.log('Auth middleware - Extracted token:', token ? 'Token exists' : 'No token');
+    console.log('Backend - Auth middleware - Checking authorization header');
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
-      console.log('Auth middleware - No token provided');
-      throw new Error('No token provided');
+    if (!authHeader) {
+      console.log('Backend - Auth middleware - No authorization header');
+      return res.status(401).json({ error: 'Please authenticate.', details: 'No token provided' });
     }
 
-    console.log('Auth middleware - JWT_SECRET:', process.env.JWT_SECRET);
-    
+    const token = authHeader.split(' ')[1];
+    console.log('Backend - Auth middleware - Token exists:', !!token);
+
+    if (!token) {
+      console.log('Backend - Auth middleware - No token in authorization header');
+      return res.status(401).json({ error: 'Please authenticate.', details: 'Invalid token format' });
+    }
+
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+      console.log('Backend - Auth middleware - Verifying token');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as {
         userId: string;
         iat: number;
         exp: number;
       };
-      console.log('Auth middleware - Decoded token:', decoded);
+      console.log('Backend - Auth middleware - Token verified, user ID:', decoded.userId);
       req.user = decoded;
       next();
-    } catch (jwtError) {
-      console.error('Auth middleware - JWT verification error:', jwtError);
-      throw jwtError;
+    } catch (error) {
+      console.log('Backend - Auth middleware - Token verification failed:', error);
+      return res.status(401).json({ error: 'Please authenticate.', details: 'Invalid token' });
     }
   } catch (error) {
-    console.error('Auth middleware - Error details:', {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    });
-    res.status(401).json({ 
-      error: 'Please authenticate.',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
+    console.error('Backend - Auth middleware - Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }; 

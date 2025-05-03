@@ -1,39 +1,29 @@
-import { Router } from 'express';
-import { body } from 'express-validator';
-import { createListing, updateListing, deleteListing, getListings } from '../controllers/listingController';
+import express from 'express';
+import { createListing, updateListing, deleteListing, removeListing, getListings, getListing } from '../controllers/listingController';
 import { auth } from '../middleware/auth';
+import { listingValidation } from '../middleware/listingValidation';
 
-const router = Router();
+const router = express.Router();
 
-// Validation middleware
-const listingValidation = [
-  body('title').trim().notEmpty().withMessage('Title is required'),
-  body('description').trim().notEmpty().withMessage('Description is required'),
-  body('condition').trim().notEmpty().withMessage('Condition is required'),
-  body('images')
-    .optional()
-    .isArray()
-    .withMessage('Images must be an array')
-    .custom((value) => {
-      if (!value) return true; // Allow null/undefined
-      return value.every((item: any) => typeof item === 'string');
-    })
-    .withMessage('All images must be strings'),
-  body('tags')
-    .optional()
-    .isArray()
-    .withMessage('Tags must be an array')
-    .custom((value) => {
-      if (!value) return true; // Allow null/undefined
-      return value.every((item: any) => typeof item === 'string');
-    })
-    .withMessage('All tags must be strings'),
-];
+// Add logging middleware
+router.use((req, res, next) => {
+  console.log('Backend - Incoming request:', {
+    method: req.method,
+    path: req.path,
+    params: req.params,
+    query: req.query,
+    headers: {
+      authorization: req.headers.authorization ? 'Bearer [HIDDEN]' : 'No token',
+    }
+  });
+  next();
+});
 
-// Routes
-router.get('/', auth, getListings);
 router.post('/', auth, listingValidation, createListing);
+router.get('/', auth, getListings);
+router.get('/:id', auth, getListing);
 router.put('/:id', auth, listingValidation, updateListing);
 router.delete('/:id', auth, deleteListing);
+router.delete('/remove/:id', auth, removeListing);
 
 export default router; 
